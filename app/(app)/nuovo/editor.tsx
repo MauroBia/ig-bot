@@ -18,7 +18,13 @@ function oraLocaleTra(minuti: number) {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
-export default function Editor({ brand }: { brand: { id: string; nome: string }[] }) {
+export default function Editor({
+  brand,
+  copyAttivo,
+}: {
+  brand: { id: string; nome: string }[];
+  copyAttivo: boolean;
+}) {
   const [brandId, setBrandId] = useState(brand[0]?.id ?? "");
   const [tipo, setTipo] = useState("IMAGE");
   const [media, setMedia] = useState<string[]>([]);
@@ -148,16 +154,25 @@ export default function Editor({ brand }: { brand: { id: string; nome: string }[
         </section>
 
         <section className="space-y-3 rounded-2xl border border-bordo bg-pannello p-5">
-          <label className="etichetta">Brief per il copy</label>
-          <textarea
-            className="campo min-h-24"
-            placeholder="Es. Farmer Night 12 dicembre al Magika di Crema, apertura 22:30, lista ridotta entro le 23:30, scrivi in DM per tavoli."
-            value={brief}
-            onChange={(e) => setBrief(e.target.value)}
-          />
-          <button type="button" className="bottone" onClick={generaCopy} disabled={generando || !brief.trim()}>
-            {generando ? "Claude sta scrivendo…" : varianti.length ? "Rigenera 3 proposte" : "Genera 3 proposte"}
-          </button>
+          {copyAttivo ? (
+            <>
+              <label className="etichetta">Brief per il copy</label>
+              <textarea
+                className="campo min-h-24"
+                placeholder="Es. Farmer Night 12 dicembre al Magika di Crema, apertura 22:30, lista ridotta entro le 23:30, scrivi in DM per tavoli."
+                value={brief}
+                onChange={(e) => setBrief(e.target.value)}
+              />
+              <button type="button" className="bottone" onClick={generaCopy} disabled={generando || !brief.trim()}>
+                {generando ? "Claude sta scrivendo…" : varianti.length ? "Rigenera 3 proposte" : "Genera 3 proposte"}
+              </button>
+            </>
+          ) : (
+            <p className="rounded-lg border border-dashed border-bordo p-3 text-xs text-tenue">
+              Generazione automatica del copy non attiva. Scrivi la caption qui sotto, oppure aggiungi
+              ANTHROPIC_API_KEY in Vercel per avere 3 proposte di Claude a ogni contenuto.
+            </p>
+          )}
 
           {varianti.length > 0 && (
             <div className="grid gap-3 md:grid-cols-3">

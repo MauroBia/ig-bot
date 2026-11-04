@@ -4,6 +4,8 @@ import { generaCopy } from "@/lib/claude";
 
 export async function POST(req: Request) {
   if (!(await utenteCorrente())) return NextResponse.json({ errore: "non autorizzato" }, { status: 401 });
+  if (!process.env.ANTHROPIC_API_KEY)
+    return NextResponse.json({ errore: "Generazione copy non attiva: manca ANTHROPIC_API_KEY" }, { status: 503 });
 
   const { brandId, brief, tipo } = await req.json();
   if (!brief?.trim()) return NextResponse.json({ errore: "Scrivi un brief" }, { status: 400 });

@@ -7,7 +7,7 @@ export default async function Nuovo() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold">Nuovo contenuto</h1>
-      <Editor brand={brand ?? []} />
+      <Editor brand={brand ?? []} copyAttivo={Boolean(process.env.ANTHROPIC_API_KEY)} />
     </div>
   );
 }
