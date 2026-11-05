@@ -22,10 +22,10 @@ const isVideo = (url: string) => /\.(mp4|mov)(\?|$)/i.test(url);
 /** Aspetta che Meta finisca di elaborare un video (max ~4 minuti). */
 async function attendiPronto(id: string) {
   for (let i = 0; i < 48; i++) {
+    if (i > 0) await new Promise((r) => setTimeout(r, 3000));
     const s = await chiama(id, { fields: "status_code" }, "GET");
     if (s.status_code === "FINISHED") return;
-    if (s.status_code === "ERROR") throw new Error("Meta non è riuscita a elaborare il video");
-    await new Promise((r) => setTimeout(r, 5000));
+    if (s.status_code === "ERROR") throw new Error("Instagram non è riuscito a elaborare il file");
   }
   throw new Error("Timeout: il video ci mette troppo a essere elaborato");
 }
@@ -51,7 +51,7 @@ export async function pubblica(igUserId: string, post: PostDaPubblicare): Promis
       if (isVideo(url)) Object.assign(p, { media_type: "VIDEO", video_url: url });
       else p.image_url = url;
       const c = await chiama(`${igUserId}/media`, p);
-      if (isVideo(url)) await attendiPronto(c.id);
+      await attendiPronto(c.id);
       figli.push(c.id);
     }
     const c = await chiama(`${igUserId}/media`, {
@@ -59,6 +59,7 @@ export async function pubblica(igUserId: string, post: PostDaPubblicare): Promis
       children: figli.join(","),
       caption: post.caption ?? "",
     });
+    await attendiPronto(c.id);
     creationId = c.id;
   } else {
     const p: Record<string, string> = {};
@@ -73,10 +74,20 @@ export async function pubblica(igUserId: string, post: PostDaPubblicare): Promis
       Object.assign(p, { image_url: primo, caption: post.caption ?? "" });
     }
     const c = await chiama(`${igUserId}/media`, p);
-    if (video) await attendiPronto(c.id);
+    await attendiPronto(c.id);
     creationId = c.id;
   }
 
-  const pub = await chiama(`${igUserId}/media_publish`, { creation_id: creationId });
-  return pub.id as string;
+  // Instagram a volte risponde "non pronto" anche dopo FINISHED: riprova qualche volta
+  for (let tentativo = 1; ; tentativo++) {
+    try {
+      const pub = await chiama(`${igUserId}/media_publish`, { creation_id: creationId });
+      return pub.id as string;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const nonPronto = /non è pronto|not ready|not available|attendi/i.test(msg);
+      if (!nonPronto || tentativo >= 6) throw e;
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
 }
