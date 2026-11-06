@@ -17,6 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <nav className="flex gap-4 text-sm">
             <Link href="/coda" className="text-tenue hover:text-testo">Coda</Link>
             <Link href="/nuovo" className="text-tenue hover:text-testo">Nuovo contenuto</Link>
+            <Link href="/parole" className="text-tenue hover:text-testo">Parole chiave</Link>
           </nav>
           <form action={esci} className="ml-auto flex items-center gap-3">
             <span className="hidden text-xs text-tenue sm:inline">{utente.email}</span>
