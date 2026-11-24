@@ -34,11 +34,16 @@ export type PostDaPubblicare = {
   tipo: "IMAGE" | "CAROUSEL" | "REELS" | "STORIES";
   caption: string | null;
   media_urls: string[];
+  collaboratori?: string[] | null;
 };
 
 /** Pubblica un contenuto su Instagram e restituisce l'ID del post. */
 export async function pubblica(igUserId: string, post: PostDaPubblicare): Promise<string> {
   const [primo] = post.media_urls;
+  // invito di collaborazione (max 3 profili, solo post/caroselli/reel, non storie)
+  const collab: Record<string, string> = post.collaboratori?.length
+    ? { collaborators: JSON.stringify(post.collaboratori.slice(0, 3).map((u) => u.replace(/^@/, ""))) }
+    : {};
   if (!primo) throw new Error("Nessun media allegato");
   let creationId: string;
 
@@ -58,6 +63,7 @@ export async function pubblica(igUserId: string, post: PostDaPubblicare): Promis
       media_type: "CAROUSEL",
       children: figli.join(","),
       caption: post.caption ?? "",
+      ...collab,
     });
     await attendiPronto(c.id);
     creationId = c.id;
@@ -69,9 +75,9 @@ export async function pubblica(igUserId: string, post: PostDaPubblicare): Promis
       if (video) p.video_url = primo;
       else p.image_url = primo;
     } else if (post.tipo === "REELS" || video) {
-      Object.assign(p, { media_type: "REELS", video_url: primo, caption: post.caption ?? "" });
+      Object.assign(p, { media_type: "REELS", video_url: primo, caption: post.caption ?? "", ...collab });
     } else {
-      Object.assign(p, { image_url: primo, caption: post.caption ?? "" });
+      Object.assign(p, { image_url: primo, caption: post.caption ?? "", ...collab });
     }
     const c = await chiama(`${igUserId}/media`, p);
     await attendiPronto(c.id);
