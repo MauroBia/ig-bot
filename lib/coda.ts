@@ -20,7 +20,15 @@ export async function pubblicaPost(id: string) {
   try {
     const igUserId = post.brand_kit?.ig_user_id;
     if (!igUserId) throw new Error("Il brand non ha un ID Instagram collegato");
-    const igMediaId = await pubblica(igUserId, post);
+    let igMediaId: string;
+    try {
+      igMediaId = await pubblica(igUserId, post);
+    } catch (e) {
+      // se l'invito di collaborazione viene rifiutato, pubblica comunque senza collaboratori
+      if (!post.collaboratori?.length) throw e;
+      await sb.from("logs").insert({ livello: "warn", messaggio: "Collaboratori rifiutati, ripubblico senza", dettagli: { id, errore: String(e) } });
+      igMediaId = await pubblica(igUserId, { ...post, collaboratori: null });
+    }
     await sb
       .from("posts")
       .update({ stato: "pubblicato", ig_media_id: igMediaId, published_at: new Date().toISOString() })
